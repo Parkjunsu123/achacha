@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: achacha
+
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Asia/Seoul
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+      database: achacha
+      auto-index-creation: true
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+
+  servlet:
+    multipart:
+      max-file-size: 5MB # 파일 하나 당 최대 용량
+      max-request-size: 15MB # 모든 파일의 최대 용량
+
+  profiles:
+    group:
+      local:
+        - local
+      prod:
+        - prod
+      test:
+        - test
+
+springdoc:
+  swagger-ui:
+    path: /api/swagger-ui.html
+  api-docs:
+    path: /api/v3/api-docs
+
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiry-seconds: 2592000 # 30일
+  refresh-token-expiry-seconds: 3888000 # 45일
+
+clova:
+  ocr:
+    api-url: ${CLOVA_OCR_API_URL}
+    secret-key: ${CLOVA_OCR_SECRET_KEY}
+
+ai-service:
+  api-url: ${AI_SERVICE_URL}
+
+aws:
+  region: ap-northeast-2
+  credentials:
+    access-key: ${AWS_ACCESS_TOKEN}
+    secret-key: ${AWS_SECRET_TOKEN}
+  s3:
+    bucket: achacha-bucket
+  cloudfront:
+    domain: d23wsj9ifltpil.cloudfront.net
+    keypair-id: ${AWS_CLOUDFRONT_KEYPAIR_ID}
+    private-key: ${AWS_CLOUDFRONT_PRIVATE_KEY}
+
+encryption:
+  key: ${ENCRYPTION_KEY}

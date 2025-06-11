@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  spring-app:
+    build:
+      context: .  # Dockerfile이 위치한 폴더
+      dockerfile: Dockerfile-local  # Spring Boot Dockerfile 이름
+    restart: always
+    ports:
+      - "8080:8080"  # Spring Boot 애플리케이션 포트 매핑
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      CLOVA_OCR_API_URL: ${CLOVA_OCR_API_URL}
+      CLOVA_OCR_SECRET_KEY: ${CLOVA_OCR_SECRET_KEY}
+      AI_SERVICE_URL: ${AI_SERVICE_URL} # FastAPI 서비스 내부 URL
+      MONGODB_URI: ${MONGODB_URI} # MongoDB 연결 URI 추가
+      AWS_ACCESS_TOKEN: ${AWS_ACCESS_TOKEN}
+      AWS_SECRET_TOKEN: ${AWS_SECRET_TOKEN}
+      AWS_CLOUDFRONT_KEYPAIR_ID: ${AWS_CLOUDFRONT_KEYPAIR_ID}
+      AWS_CLOUDFRONT_PRIVATE_KEY: ${AWS_CLOUDFRONT_PRIVATE_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+    depends_on:
+      - mysql
+      - rabbitmq
+    networks:
+      - achacha-network
+
+  mysql:
+    image: mysql:8.0.36
+    restart: always
+    ports:
+      - "3300:3306"
+    volumes:
+      - achacha-mysql:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: achacha
+      MYSQL_USER: local
+      MYSQL_PASSWORD: local
+      MYSQL_ROOT_PASSWORD: root
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+09:00
+    networks:
+      - achacha-network
+
+  mongodb:
+    image: mongo:6.0
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - achacha-mongodb:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: local
+      MONGO_INITDB_ROOT_PASSWORD: local
+      MONGO_INITDB_DATABASE: achacha
+      TZ: Asia/Seoul
+    networks:
+      - achacha-network
+
+  rabbitmq:
+    image: rabbitmq:4.1-management
+    restart: always
+    ports:
+      - "5672:5672"  # AMQP 프로토콜 포트
+      - "15672:15672"  # 관리 웹 인터페이스 포트
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      TZ: Asia/Seoul
+    volumes:
+      - achacha-rabbitmq:/var/lib/rabbitmq
+    networks:
+      - achacha-network
+
+networks:
+  achacha-network:
+    name: achacha-network
+    driver: bridge
+
+volumes:
+  achacha-mysql:
+  achacha-mongodb:
+  achacha-rabbitmq:

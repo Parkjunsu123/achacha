@@ -1,0 +1,178 @@
+pipeline {
+    agent any
+    tools {
+        jdk "JDK17"
+    }
+    environment {
+        DOCKER_IMAGE = 'ssuzyn/achacha-backend'
+
+        // 데이터베이스 환경 변수
+        SPRING_DATABASE = credentials('SPRING_DATABASE')
+        SPRING_DATABASE_URL = credentials('SPRING_DATABASE_URL')
+
+        // 클로바 OCR 환경 변수
+        CLOVA_OCR_API_URL = credentials('CLOVA_OCR_API_URL')
+        CLOVA_OCR_SECRET_KEY = credentials('CLOVA_OCR_SECRET_KEY')
+
+        // FastAPI 환경변수
+        AI_SERVICE_URL = credentials('FASTAPI_AI_URL')
+
+        // AWS 환경변수
+        AWS_ACCESS_TOKEN = credentials('AWS_ACCESS_TOKEN')
+        AWS_SECRET_TOKEN = credentials('AWS_SECRET_TOKEN')
+
+        // CloudFront 환경변수
+        AWS_CLOUDFRONT_KEYPAIR_ID = credentials('AWS_CLOUDFRONT_KEYPAIR_ID')
+        AWS_CLOUDFRONT_PRIVATE_KEY = credentials('AWS_CLOUDFRONT_PRIVATE_KEY')
+
+        // MongoDB 환경변수
+        MONGODB_URI = credentials('MONGODB_URI')
+
+        // Mattermost 웹훅 URL
+        MATTERMOST_WEBHOOK_URL = credentials('MATTERMOST_WEBHOOK_URL')
+
+        // JWT secret 값
+        JWT_SECRET = credentials('JWT_SECRET')
+
+        // RabbitMQ 환경 변수
+        RABBITMQ_HOST = credentials('RABBITMQ_HOST')
+        RABBITMQ_PORT = credentials('RABBITMQ_PORT')
+        RABBITMQ_USERNAME = credentials('RABBITMQ_USERNAME')
+        RABBITMQ_PASSWORD = credentials('RABBITMQ_PASSWORD')
+
+        // 바코드 암호화 키
+        ENCRYPTION_KEY = credentials('ENCRYPTION_KEY')
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                echo 'Cloning the repository...'
+                git branch: 'be',
+                    credentialsId: 'GITLAB_PAT',
+                    url: 'https://lab.ssafy.com/s12-final/S12P31D205.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir('backend/achacha') {
+                    sh 'chmod +x gradlew'
+                    sh './gradlew clean build -x test'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir('backend/achacha') {
+                    sh './gradlew test'
+                    junit '**/build/test-results/test/*.xml'
+                }
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                dir('backend/achacha') {
+                    script {
+                        echo "DOCKER_IMAGE: ${env.DOCKER_IMAGE}"
+                        echo "BUILD_NUMBER: ${env.BUILD_NUMBER}"
+
+                        def dockerImage = docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}")
+
+                        docker.withRegistry('', 'DOCKER_HUB') {
+                            dockerImage.push()
+                            dockerImage.push('latest')
+                        }
+                        env.IMAGE_TAG = "${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Server') {
+            steps {
+                sshPublisher(publishers: [
+                    sshPublisherDesc(
+                        configName: 'EC2-SSH',
+                        transfers: [
+                            sshTransfer(
+                                execCommand: """
+                                    # MySQL 컨테이너가 있는 경우만 네트워크에 연결
+                                    if docker ps | grep achacha-mysql; then docker network connect achacha-network achacha-mysql || true; fi;
+
+                                    # 최신 이미지 가져오기
+                                    docker pull ${DOCKER_IMAGE}:latest;
+
+                                    # 기존 컨테이너 중지 및 제거
+                                    docker stop achacha-backend || true;
+                                    docker rm achacha-backend || true;
+
+                                    # 새 컨테이너 실행
+                                    docker run -d --name achacha-backend \\
+                                      -e SPRING_PROFILES_ACTIVE=prod \\
+                                      -e SPRING_DATABASE_URL="${SPRING_DATABASE_URL}" \\
+                                      -e SPRING_DATABASE_USERNAME="${SPRING_DATABASE_USR}" \\
+                                      -e SPRING_DATABASE_PASSWORD="${SPRING_DATABASE_PSW}" \\
+                                      -e CLOVA_OCR_API_URL="${CLOVA_OCR_API_URL}" \\
+                                      -e CLOVA_OCR_SECRET_KEY="${CLOVA_OCR_SECRET_KEY}" \\
+                                      -e AI_SERVICE_URL="${AI_SERVICE_URL}" \\
+                                      -e AWS_ACCESS_TOKEN="${AWS_ACCESS_TOKEN}" \\
+                                      -e AWS_SECRET_TOKEN="${AWS_SECRET_TOKEN}" \\
+                                      -e AWS_CLOUDFRONT_KEYPAIR_ID="${AWS_CLOUDFRONT_KEYPAIR_ID}" \\
+                                      -e AWS_CLOUDFRONT_PRIVATE_KEY="${AWS_CLOUDFRONT_PRIVATE_KEY}" \\
+                                      -e MONGODB_URI="${MONGODB_URI}" \\
+                                      -e JWT_SECRET="${JWT_SECRET}" \\
+                                      -e RABBITMQ_HOST="${RABBITMQ_HOST}" \\
+                                      -e RABBITMQ_PORT="${RABBITMQ_PORT}" \\
+                                      -e RABBITMQ_USERNAME="${RABBITMQ_USERNAME}" \\
+                                      -e RABBITMQ_PASSWORD="${RABBITMQ_PASSWORD}" \\
+                                      -e ENCRYPTION_KEY="${ENCRYPTION_KEY}" \\
+                                      --network achacha-network \\
+                                      --restart unless-stopped \\
+                                      ${DOCKER_IMAGE}:latest;
+
+                                    # 미사용 이미지 정리
+                                    docker system prune -f
+                                """
+                            )
+                        ]
+                    )
+                ])
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo '[BE] 빌드 성공! ✅'
+            script {
+                def message = ':white_check_mark: [BE] 빌드 성공: ' + env.JOB_NAME + ' #' + env.BUILD_NUMBER + ' :white_check_mark:' +
+                                          '\n(<' + env.BUILD_URL + '|Details>)'
+                mattermostSend(
+                    color: 'good',
+                    message: message,
+                )
+                updateGitlabCommitStatus(name: 'build', state: 'success')
+                addGitLabMRComment(comment: ":white_check_mark: 빌드 성공! [Jenkins에서 자세히 보기](${env.BUILD_URL})")
+            }
+        }
+        failure {
+            echo '[BE] 빌드 실패! ❌'
+            script {
+                def message = ':x: [BE] 빌드 실패: ' + env.JOB_NAME + ' #' + env.BUILD_NUMBER + ' :x:' +
+                                          '\n(<' + env.BUILD_URL + '|Details>)'
+                mattermostSend(
+                    color: 'danger',
+                    message: message,
+                )
+                updateGitlabCommitStatus(name: 'build', state: 'failed')
+                addGitLabMRComment(comment: ":x: 빌드 실패! [Jenkins에서 자세히 보기](${env.BUILD_URL}) [콘솔 로그 확인](${env.BUILD_URL}console)")
+            }
+        }
+    }
+}
