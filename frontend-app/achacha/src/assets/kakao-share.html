@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>카카오톡 공유</title>
+    <script src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+    <script>
+      // 카카오 JS SDK 초기화
+      Kakao.init('8d54c485f1e1360ca3124ebb9f3978ab');
+
+      // 파라미터 추출 (예: ?code=XXXXXX)
+      function getCode() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('code');
+      }
+
+      function sendKakaoLink() {
+        var code = getCode();
+        Kakao.Link.sendCustom({
+          templateId: 12345, // 본인 템플릿 ID로 변경
+          templateArgs: {
+            invite_code: code // 템플릿에서 사용할 변수명과 맞춰야 함
+          }
+        });
+      }
+
+      window.onload = function() {
+        sendKakaoLink();
+      };
+    </script>
+  </head>
+  <body>
+    <p>카카오톡 공유창을 여는 중입니다...</p>
+  </body>
+</html>
