@@ -1,0 +1,53 @@
+[versions]
+agp = "8.9.1"
+kotlin = "2.0.21"
+kotlinxSerializationJsonVersion = "1.6.3"
+playServicesWearable = "19.0.0"
+composeBom = "2024.09.00"
+# composeMaterial = "1.2.1" # Not needed when using Wear Compose Material primarily
+# composeFoundation = "1.2.1" # Not needed when using Wear Compose Foundation primarily
+wearComposeMaterialVersion = "1.4.0" # Example: Specify Wear Compose Material version (check latest)
+wearComposeFoundationVersion = "1.4.0" # Example: Specify Wear Compose Foundation version (check latest)
+wearToolingPreview = "1.0.0"
+activityCompose = "1.10.1"
+coreSplashscreen = "1.0.1"
+accompanist = "0.34.0" # Add Accompanist version (check for latest compatible version)
+
+[libraries]
+play-services-wearable = { group = "com.google.android.gms", name = "play-services-wearable", version.ref = "playServicesWearable" }
+compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+
+# Jetpack Compose UI Libraries (using BoM)
+ui = { group = "androidx.compose.ui", name = "ui" }
+ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+
+# Jetpack Compose Material & Foundation (using BoM) - Keep if needed by other modules/code
+compose-material = { group = "androidx.compose.material", name = "material" }
+compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+
+# Wear Compose Libraries
+wear-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "wearComposeMaterialVersion" }
+wear-compose-foundation = { group = "androidx.wear.compose", name = "compose-foundation", version.ref = "wearComposeFoundationVersion" }
+wear-tooling-preview = { group = "androidx.wear", name = "wear-tooling-preview", version.ref = "wearToolingPreview" }
+
+# Other AndroidX Libraries
+activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
+
+# Kotlinx Serialization JSON library
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJsonVersion" }
+
+# Accompanist Libraries
+accompanist-pager = { group = "com.google.accompanist", name = "accompanist-pager", version.ref = "accompanist" }
+accompanist-pager-indicators = { group = "com.google.accompanist", name = "accompanist-pager-indicators", version.ref = "accompanist" } # Optional: if you need indicators
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
