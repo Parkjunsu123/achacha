@@ -1,0 +1,8 @@
+<resources>
+  <string name="app_name">아차차</string>
+  <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
+  <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
+  <!-- default_notification_channel_id를 바탕으로 Android 코드에서 알림 채널을 생성하고 
+  그 채널을 알림에 지정해서 알림이 제대로 분류되고 사용자 설정에서 관리되도록 함 -->
+  <string name="default_notification_channel_id">achacha_notification_channel</string>
+</resources>

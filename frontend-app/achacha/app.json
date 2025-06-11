@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "아차차",
+    "slug": "achacha_app",
+    "scheme": "com.koup28.achacha_app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash_icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": ["location", "fetch"],
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "주변 매장에서 기프티콘 알림을 받기 위해 항상 위치 권한이 필요합니다.",
+        "NSLocationAlwaysUsageDescription": "주변 매장에서 기프티콘 알림을 받기 위해 항상 위치 권한이 필요합니다.",
+        "NSLocationWhenInUseUsageDescription": "주변 매장에서 기프티콘 알림을 받기 위해 위치 권한이 필요합니다."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive_icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.koup28.achacha_app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "RECEIVE_BOOT_COMPLETED",
+        "WAKE_LOCK"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "@react-native-seoul/kakao-login",
+        {
+          "kakaoAppKey": "process.env.KAKAO_APP_KEY",
+          "customScheme": "kakao${process.env.KAKAO_APP_KEY}"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraMavenRepos": ["https://devrepo.kakao.com/nexus/content/groups/public/"]
+          }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "주변 매장에서 기프티콘 알림을 받기 위해 항상 위치 권한이 필요합니다.",
+          "locationAlwaysPermission": "주변 매장에서 기프티콘 알림을 받기 위해 항상 위치 권한이 필요합니다.",
+          "locationWhenInUsePermission": "주변 매장에서 기프티콘 알림을 받기 위해 위치 권한이 필요합니다.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      "./headlessLocationPlugin.js"
+    ]
+  }
+}
