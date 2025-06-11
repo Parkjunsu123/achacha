@@ -1,0 +1,54 @@
+import React, { useEffect } from 'react';
+
+const KAKAO_JS_KEY = '8d54c485f1e1360ca3124ebb9f3978ab'; // KakaoShare.jsx와 동일한 JS 키 사용
+const TEMPLATE_ID = 120645; // 실제 템플릿 ID로 변경 필요
+
+function PresentSharePage() {
+  useEffect(() => {
+    // Kakao SDK 동적 로드
+    const script = document.createElement('script');
+    script.src = 'https://developers.kakao.com/sdk/js/kakao.js';
+    script.async = true;
+    script.onload = () => {
+      if (window.Kakao && !window.Kakao.isInitialized()) {
+        window.Kakao.init(KAKAO_JS_KEY);
+      }
+      sendKakaoLink();
+    };
+    document.body.appendChild(script);
+
+    let timer = null;
+
+    function sendKakaoLink() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const name = params.get('name');
+      const brand = params.get('brand');
+      if (window.Kakao && window.Kakao.Link) {
+        window.Kakao.Link.sendCustom({
+          templateId: TEMPLATE_ID,
+          templateArgs: {
+            gifticon_name: name,
+            brand_name: brand,
+            card_link: `https://your-react-app-domain.com/link/${code}`
+          }
+        });
+        // 2초 후 마켓으로 이동 (카카오톡 미설치 시)
+        timer = setTimeout(() => {
+          window.location.href = 'https://play.google.com/store/apps/details?id=com.kakao.talk';
+        }, 2000);
+      }
+    }
+
+    // cleanup
+    return () => {
+      document.body.removeChild(script);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
+  return <div>카카오톡 공유창을 여는 중입니다...</div>;
+}
+
+export default PresentSharePage;
+

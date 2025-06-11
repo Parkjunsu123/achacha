@@ -1,0 +1,90 @@
+pipeline {
+    agent any
+    environment {
+        // EC2 상의 Nginx가 서빙하는 정적 파일 경로
+        FRONTEND_BUILD_DIR = '/home/ubuntu/achacha/frontend/build'
+        // 정적 파일 업데이트용 Docker 이미지 이름
+        STATIC_UPDATE_IMAGE = 'achacha-frontend-update:latest'
+
+        // Mattermost 웹훅 URL
+        MATTERMOST_WEBHOOK_URL = credentials('MATTERMOST_WEBHOOK_URL')
+    }
+    stages {
+        stage('Clone Repository') {
+            steps {
+                echo 'Cloning the repository from branch fe...'
+                git branch: 'fe-web',
+                    url: 'https://lab.ssafy.com/s12-final/S12P31D205.git',
+                    credentialsId: 'GITLAB_PAT'
+            }
+        }
+        stage('Build Frontend') {
+            steps {
+                echo 'Installing dependencies and building the frontend with npm...'
+                nodejs(nodeJSInstallationName: 'NodeJS22') {
+                    dir('frontend_web/achacha') {  // 프로젝트 루트 디렉토리
+                        sh 'npm --version'
+                        sh 'npm ci || npm install'
+                        sh 'npm run build'
+                    }
+                }
+            }
+        }
+        stage('Build Static Update Image') {
+            steps {
+                echo 'Building Docker image for static file update...'
+                // build 폴더를 workspace 루트로 복사 (이미 있는 폴더 활용)
+                sh 'cp -R frontend_web/achacha/build ./build'
+                // Dockerfile과 entrypoint.sh도 workspace 루트로 복사
+                sh 'cp frontend_web/achacha/Dockerfile .'
+                sh 'cp frontend_web/achacha/entrypoint.sh .'
+                // Docker 이미지 빌드
+                sh "docker build -t ${STATIC_UPDATE_IMAGE} ."
+            }
+        }
+        stage('Update Static Files on EC2') {
+            steps {
+                echo 'Preparing backup...'
+                // 이미 build_backup 폴더가 있으므로 내용만 비우고 현재 파일 백업
+                sh "rm -rf ${FRONTEND_BUILD_DIR}_backup/*"
+                sh "if [ -d '${FRONTEND_BUILD_DIR}' ] && [ -n \"\$(ls -A ${FRONTEND_BUILD_DIR} 2>/dev/null)\" ]; then cp -R ${FRONTEND_BUILD_DIR}/* ${FRONTEND_BUILD_DIR}_backup/ || true; fi"
+                
+                echo 'Cleaning old static files from host volume...'
+                sh "rm -rf ${FRONTEND_BUILD_DIR}/*"
+                
+                echo 'Updating static files to Nginx host volume...'
+                sh "docker run --rm -v ${FRONTEND_BUILD_DIR}:/usr/share/nginx/html ${STATIC_UPDATE_IMAGE}"
+                
+                echo 'Reloading Nginx...'
+                sh "docker exec achacha-nginx nginx -s reload || true"
+            }
+        }
+    }
+    post {
+        success {
+            echo 'Frontend static files updated successfully!'
+            script {
+                def successMsg = ':tada: [FE] 빌드 성공: ' + env.JOB_NAME + ' #' + env.BUILD_NUMBER + ' :tada:' + '\n(<' + env.BUILD_URL + '|상세 정보>)'
+                mattermostSend(color: 'good',
+                    message: successMsg,
+                )
+            }
+        }
+        failure {
+            echo 'Deployment failed. Rolling back...'
+            script {
+                // 실패 시 롤백
+                sh "if [ -d '${FRONTEND_BUILD_DIR}_backup' ] && [ -n \"\$(ls -A ${FRONTEND_BUILD_DIR}_backup 2>/dev/null)\" ]; then rm -rf ${FRONTEND_BUILD_DIR}/*; cp -R ${FRONTEND_BUILD_DIR}_backup/* ${FRONTEND_BUILD_DIR}/; docker exec achacha-nginx nginx -s reload || true; fi"
+                
+                def failureMsg = ':x: [FE] 빌드 실패: ' + env.JOB_NAME + ' #' + env.BUILD_NUMBER + ' :x:' + '\n(<' + env.BUILD_URL + '|상세 정보>)'
+                mattermostSend(color: 'danger',
+                    message: failureMsg,
+                )
+            }
+        }
+        always {
+            echo 'Cleaning workspace...'
+            cleanWs()
+        }
+    }
+}
