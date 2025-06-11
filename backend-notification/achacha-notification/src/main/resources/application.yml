@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: achacha-notification
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    listener:
+      simple:
+        retry:
+          enabled: true # 메시지 처리 실패 시 자동 재시도
+          initial-interval: 1000 # : 첫 번째 재시도까지의 대기 시간을 밀리초 단위로 지정
+          max-attempts: 3 # 최대 재시도 횟수,  3회 이후에는 DLQ로 보냄
+          max-interval: 10000 # 재시도 간 최대 대기 시간
+          multiplier: 2 # 각 재시도마다 대기 시간을 곱할 배수 (지수 백오프)
+
+firebase:
+  path: ${FIREBASE_PATH}
+#
+#server:
+#  port: 8081
+
+# 로깅 설정
+logging:
+  level:
+    root: INFO
+    com.eurachacha: DEBUG
